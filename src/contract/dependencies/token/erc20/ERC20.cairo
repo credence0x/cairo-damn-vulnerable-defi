@@ -65,7 +65,7 @@ mod ERC20 {
         initializer(ref self, name, symbol);
     }
 
-    // #[external(v0)]
+    #[external(v0)]
     impl ERC20 of super::IERC20<ContractState> {
 
         fn name(self: @ContractState) -> felt252 {
@@ -122,9 +122,12 @@ mod ERC20 {
         }
     }
 
- 
-   
 
+    /// 
+    /// Internal functions
+    ///
+
+ 
     fn initializer(ref self: ContractState, name: felt252, symbol: felt252) {
         self.name.write(name);
         self.symbol.write(symbol);
