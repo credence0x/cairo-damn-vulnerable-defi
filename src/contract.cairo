@@ -1,1 +1,2 @@
-mod hello_starknet;
+mod side_entrance;
+mod dependencies;
