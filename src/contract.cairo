@@ -1,2 +1,2 @@
-mod side_entrance;
+mod challenges;
 mod dependencies;
