@@ -64,6 +64,9 @@ mod SideEntranceLenderPool {
 
             let caller = get_caller_address();
             self.balances.write(caller, self.balances.read(caller) + amount);
+
+            let token: IERC20Dispatcher = self.damnValuableToken.read();
+            token.transfer_from(caller, get_contract_address(), amount);
         
             self.emit(Event::Deposit(Deposit {who:caller, amount }));
         }
