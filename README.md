@@ -22,7 +22,7 @@ To confirm installation, run `$ scarb --version` which should output
 scarb 0.5.1 (798acce7f 2023-07-05)
 cairo: 2.0.1 (https://crates.io/crates/cairo-lang-compiler/2.0.1)
 ```
-To test your solution, run `scarb test` .
+To test your solution, run `scarb cairo-test -f <TEST_FILE_NAME>`. <br>E.g `scarb cairo-test -f side_entrance_lender_pool`
 <br>
 <br>
 
