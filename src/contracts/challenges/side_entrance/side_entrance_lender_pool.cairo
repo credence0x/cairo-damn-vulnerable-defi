@@ -1,6 +1,8 @@
+use damnvulnerabledefi::contracts::dependencies::external::token::ERC20::IERC20Dispatcher;
+
 #[starknet::interface]
 trait IFlashLoanEtherReceiver<TContractState> {
-    fn execute(ref self: TContractState, amount: u256);
+    fn execute(self: @TContractState, token: IERC20Dispatcher, amount: u256);
 }
 
 #[starknet::interface]
@@ -12,18 +14,20 @@ trait ISideEntranceLenderPool<TContractState> {
 
 
 #[starknet::contract]
-mod SideEntranceLenderPool {
-    use starknet::{get_caller_address,get_contract_address,ContractAddress};
-    use damnvulnerabledefi::contract::dependencies::token::ERC20::{
+mod side_entrance_lender_pool {
+    use traits::TryInto;
+    use option::OptionTrait;
+    use starknet::{ get_caller_address, get_contract_address, ContractAddress};
+    use damnvulnerabledefi::contracts::dependencies::external::token::ERC20::{
         IERC20Dispatcher,IERC20DispatcherTrait
     };
     use super::{IFlashLoanEtherReceiverDispatcher,IFlashLoanEtherReceiverDispatcherTrait};
 
-    
+
     #[storage]
     struct Storage {
         balances: LegacyMap::<ContractAddress, u256>, 
-        damnValuableToken: IERC20Dispatcher
+        ether_token: IERC20Dispatcher
     }
 
     #[event]
@@ -45,28 +49,28 @@ mod SideEntranceLenderPool {
         amount: u256
     }
 
+
     #[constructor]
     fn constructor(
         ref self: ContractState, 
-        _damnValuableToken: ContractAddress
+        _ether_token: felt252
     ) {
-        self.damnValuableToken.write(IERC20Dispatcher{
-             contract_address: _damnValuableToken
+        self.ether_token.write(IERC20Dispatcher{
+             contract_address: _ether_token.try_into().unwrap()
         });
     }
 
-   
 
     #[external(v0)]
     impl SideEntranceLenderPool of super::ISideEntranceLenderPool<ContractState> {
         fn deposit(ref self: ContractState, amount: u256) {
-            assert(amount > 0, 'Amount cannot be 0');
+            assert(amount > 0, 'Amount cannot be 0');      
 
             let caller = get_caller_address();
             self.balances.write(caller, self.balances.read(caller) + amount);
 
-            let token: IERC20Dispatcher = self.damnValuableToken.read();
-            token.transfer_from(caller, get_contract_address(), amount);
+            let token: IERC20Dispatcher = self.ether_token.read();
+            token.transfer_from(caller, starknet::get_contract_address(), amount);
         
             self.emit(Event::Deposit(Deposit {who:caller, amount }));
         }
@@ -79,7 +83,7 @@ mod SideEntranceLenderPool {
 
             self.balances.write(caller, 0);
 
-            let token: IERC20Dispatcher = self.damnValuableToken.read();
+            let token: IERC20Dispatcher = self.ether_token.read();
             token.transfer(caller, amount);
 
             self.emit(Event::Withdraw(Withdraw{who:caller, amount }));
@@ -87,13 +91,17 @@ mod SideEntranceLenderPool {
 
 
         fn flash_loan(ref self: ContractState, amount: u256) {
-            let token: IERC20Dispatcher = self.damnValuableToken.read();
+            let token: IERC20Dispatcher = self.ether_token.read();
             let this = get_contract_address();
             let balance_before = token.balance_of(this);
 
+            // transfer the requested amount to the caller
+            token.transfer(get_caller_address(), amount);
+
+            // call the flash loan handler
             IFlashLoanEtherReceiverDispatcher{
                 contract_address:get_caller_address()
-            }.execute(amount);
+            }.execute(token, amount);
 
             assert(
                 token.balance_of(this) >= balance_before,

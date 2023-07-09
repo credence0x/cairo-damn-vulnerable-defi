@@ -5,3 +5,6 @@ description = "Damn vulnerable defi built in Cairo 1.0"
 homepage = "https://github.com/credence0x/damn-vulnerable-defi"
 
 [dependencies]
+starknet = ">=2.0.0-rc0"
+
+[[target.starknet-contract]]
