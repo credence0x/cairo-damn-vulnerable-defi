@@ -1,4 +1,7 @@
-use starknet::ContractAddress;
+use starknet::{
+    ContractAddress,
+    ClassHash
+};
 
 #[starknet::interface]
 trait IUniswapExchange<TContractState> {
@@ -226,8 +229,8 @@ trait IUniswapExchange<TContractState> {
 
 #[starknet::interface]
 trait IUniswapFactory<TContractState> {
-    fn initialize_factory(ref self: TContractState, template: ContractAddress);
-    fn create_exchange(ref self: TContractState, token: ContractAddress, ether_token: ContractAddress) -> ContractAddress;
+    fn initialize_factory(ref self: TContractState, template: ClassHash, ether_token: ContractAddress);
+    fn create_exchange(ref self: TContractState, token: ContractAddress) -> ContractAddress;
     fn get_exchange(self: @TContractState, token: ContractAddress) -> ContractAddress;
     fn get_token(self: @TContractState, exchange: ContractAddress) -> ContractAddress;
     fn get_token_with_id(self: @TContractState, token_id: u256) -> ContractAddress;

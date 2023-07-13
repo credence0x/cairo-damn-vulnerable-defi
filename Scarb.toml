@@ -8,7 +8,6 @@ homepage = "https://github.com/credence0x/damn-vulnerable-defi"
 starknet = ">=2.0.0-rc0"
 
 [[target.starknet-contract]]
-allowed-libfuncs-list.name = "experimental"
 
 [cairo]
 sierra-replace-ids = true

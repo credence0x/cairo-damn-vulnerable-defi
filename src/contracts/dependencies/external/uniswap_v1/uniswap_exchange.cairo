@@ -6,7 +6,6 @@ mod uniswap_exchange {
     use starknet::ContractAddress;
     use starknet::info::get_block_timestamp;
 
-
     use damnvulnerabledefi::contracts::dependencies::external::token::ERC20::{
         ERC20,
         IERC20, 
@@ -18,14 +17,13 @@ mod uniswap_exchange {
         PrivateImpl as PrivateERC20Impl,
     };
 
-    use damnvulnerabledefi::contracts::dependencies::external::uniswap::interfaces::{
+    use damnvulnerabledefi::contracts::dependencies::external::uniswap_v1::uniswap_interfaces::{
         IUniswapExchange, IUniswapExchangeDispatcher, IUniswapExchangeDispatcherTrait,
         IUniswapFactory, IUniswapFactoryDispatcher, IUniswapFactoryDispatcherTrait
     };
 
     use damnvulnerabledefi::contracts::dependencies::external::token::ERC20::ERC20::name::InternalContractStateTrait as ERC20NameInternalContractStateTrait;
     use damnvulnerabledefi::contracts::dependencies::external::token::ERC20::ERC20::symbol::InternalContractStateTrait as ERC20SymbolInternalContractStateTrait;
-
 
     use traits::Into;
 
@@ -36,6 +34,7 @@ mod uniswap_exchange {
     struct Storage{
         token: IERC20Dispatcher,
         ether_token: IERC20Dispatcher,
+        ether_token_balance: u256,
         factory: IUniswapFactoryDispatcher,
     }
 
@@ -209,10 +208,10 @@ mod uniswap_exchange {
             input_reserve: u256, 
             output_reserve: u256
         ) -> u256 {
-            assert(input_reserve > 0 && output_reserve > 0, 'INVALID_VALUE');
+            assert(input_reserve > 0 && output_reserve > 0, 'RESERVE_IS_ZERO');
             let input_amount_with_fee = input_amount * 997;
             let numerator = input_amount_with_fee * output_reserve;
-            let denominator = input_reserve * 1000 + input_amount_with_fee;
+            let denominator = (input_reserve * 1000) + input_amount_with_fee;
             numerator / denominator
         }
 
@@ -239,7 +238,7 @@ mod uniswap_exchange {
         ) -> u256 {
 
             let caller = starknet::get_caller_address();
-            UniswapExchangePrivateImpl::_receive_ether(@self,caller, value);
+            UniswapExchangePrivateImpl::_receive_ether(ref self,caller, value);
 
             UniswapExchangePrivateImpl::eth_to_token_input(
                 ref self,
@@ -265,7 +264,7 @@ mod uniswap_exchange {
             assert(!recipient.is_zero(), 'INVALID_ADDRESS');
 
             let caller = starknet::get_caller_address();
-            UniswapExchangePrivateImpl::_receive_ether(@self,caller, value);
+            UniswapExchangePrivateImpl::_receive_ether(ref self,caller, value);
 
             UniswapExchangePrivateImpl::eth_to_token_input(
                 ref self,
@@ -286,7 +285,7 @@ mod uniswap_exchange {
             deadline: u256
         ) -> u256 {
             let caller = starknet::get_caller_address();
-            UniswapExchangePrivateImpl::_receive_ether(@self,caller, value);
+            UniswapExchangePrivateImpl::_receive_ether(ref self,caller, value);
 
             UniswapExchangePrivateImpl::eth_to_token_output(
                 ref self,
@@ -313,7 +312,7 @@ mod uniswap_exchange {
             assert(!recipient.is_zero(), 'INVALID_ADDRESS');
 
             let caller = starknet::get_caller_address();
-            UniswapExchangePrivateImpl::_receive_ether(@self,caller, value);
+            UniswapExchangePrivateImpl::_receive_ether(ref self,caller, value);
 
             UniswapExchangePrivateImpl::eth_to_token_output(
                 ref self,
@@ -627,14 +626,15 @@ mod uniswap_exchange {
 
         fn get_eth_to_token_input_price(self: @ContractState, eth_sold: u256) -> u256 {
             assert(eth_sold > 0 , 'INVALID_VALUE');
+            
             let this = starknet::get_contract_address();
             let token = self.token.read();
-            let ether_token = self.ether_token.read();
+
 
             UniswapExchangeImpl::get_input_price(
                 self,
                 eth_sold, 
-                ether_token.balance_of(this), 
+                self.ether_token_balance.read(), 
                 token.balance_of(this)
             )
         }
@@ -645,12 +645,11 @@ mod uniswap_exchange {
             assert(tokens_bought > 0 , 'INVALID_VALUE');
             let this = starknet::get_contract_address();
             let token = self.token.read();
-            let ether_token = self.ether_token.read();
 
             let eth_sold = UniswapExchangeImpl::get_output_price(
                 self,
                 tokens_bought, 
-                ether_token.balance_of(this), 
+                self.ether_token_balance.read(), 
                 token.balance_of(this)
             );
 
@@ -663,13 +662,12 @@ mod uniswap_exchange {
             assert(tokens_sold > 0 , 'INVALID_VALUE');
             let this = starknet::get_contract_address();
             let token = self.token.read();
-            let ether_token = self.ether_token.read();
 
             let eth_bought = UniswapExchangeImpl::get_input_price(
                 self,
                 tokens_sold, 
                 token.balance_of(this), 
-                ether_token.balance_of(this)
+                self.ether_token_balance.read()
             );
 
             eth_bought
@@ -681,13 +679,12 @@ mod uniswap_exchange {
             assert(eth_bought > 0 , 'INVALID_VALUE');
             let this = starknet::get_contract_address();
             let token = self.token.read();
-            let ether_token = self.ether_token.read();
 
             UniswapExchangeImpl::get_output_price(
                 self,
                 eth_bought, 
                 token.balance_of(this), 
-                ether_token.balance_of(this)
+                self.ether_token_balance.read()
             )
         }
 
@@ -722,20 +719,20 @@ mod uniswap_exchange {
                 
             let this = starknet::get_contract_address();
             let caller = starknet::get_caller_address();
-            UniswapExchangePrivateImpl::_receive_ether(@self,caller, value);
+            UniswapExchangePrivateImpl::_receive_ether(ref self,caller, value);
 
             let total_liquidity = UniswapERC20Impl::total_supply(@self);
 
             if (total_liquidity > 0) {
 
-                assert(min_liquidity > 0,'');
+                assert(min_liquidity > 0,'MIN_LIQUIDITY MUST BE > 0');
                 let token = self.token.read();
-                let ether_token = self.ether_token.read();
 
-                let eth_reserve = ether_token.balance_of(this) - value;
+                let eth_reserve = self.ether_token_balance.read() - value;
                 let token_reserve = token.balance_of(this);
-                let token_amount = (value * token_reserve / eth_reserve) + 1;
-                let liquidity_minted = value * total_liquidity / eth_reserve;
+                let token_amount = ((value * token_reserve) / eth_reserve) + 1;
+                let liquidity_minted = (value * total_liquidity) / eth_reserve;
+
                 assert(max_tokens >= token_amount && liquidity_minted >= min_liquidity,'');
 
         
@@ -756,7 +753,6 @@ mod uniswap_exchange {
 
                 let factory = self.factory.read();
                 let token = self.token.read();
-                let ether_token = self.ether_token.read();
 
                 assert(
                     factory.contract_address.is_non_zero()
@@ -766,7 +762,7 @@ mod uniswap_exchange {
                 );
                 assert(factory.get_exchange(token.contract_address) == this,'');
                 let token_amount = max_tokens;
-                let initial_liquidity = ether_token.balance_of(this);
+                let initial_liquidity = self.ether_token_balance.read();
 
                 UniswapPrivateERC20Impl::_mint(caller, initial_liquidity);
 
@@ -777,7 +773,7 @@ mod uniswap_exchange {
                     eth_amount: value,
                     token_amount: token_amount
                 }));
-
+                
                 initial_liquidity
 
         }
@@ -801,16 +797,15 @@ mod uniswap_exchange {
             assert(total_liquidity > 0,'');
 
             let token = self.token.read();
-            let ether_token = self.ether_token.read();
 
             let token_reserve = token.balance_of(this);
-            let eth_amount = (amount * ether_token.balance_of(this)) / total_liquidity;
+            let eth_amount = (amount * self.ether_token_balance.read()) / total_liquidity;
             let token_amount = (amount * token_reserve) / total_liquidity;
             assert(eth_amount >= min_eth && token_amount >= min_tokens,'');
 
             UniswapPrivateERC20Impl::_burn(caller, amount);
 
-            UniswapExchangePrivateImpl::_send_ether(@self,caller, eth_amount);
+            UniswapExchangePrivateImpl::_send_ether(ref self,caller, eth_amount);
             assert(token.transfer(caller, token_amount),'');
 
             self.emit(Event::RemoveLiquidity(RemoveLiquidity {
@@ -840,10 +835,9 @@ mod uniswap_exchange {
             assert(eth_sold > 0 && min_tokens > 0, 'INVALID_VALUE');
 
             let token = self.token.read();
-            let ether_token = self.ether_token.read();
 
             let token_reserve = token.balance_of(starknet::get_contract_address());
-            let eth_reserve = ether_token.balance_of(starknet::get_contract_address()) - eth_sold;
+            let eth_reserve = self.ether_token_balance.read() - eth_sold;
             let tokens_bought = UniswapExchangeImpl::get_input_price(
                 @self, 
                 eth_sold, 
@@ -876,11 +870,10 @@ mod uniswap_exchange {
             assert(tokens_bought > 0 && max_eth > 0, 'INVALID_VALUE');
 
             let token = self.token.read();
-            let ether_token = self.ether_token.read();
 
             let this = starknet::get_contract_address();
             let token_reserve = token.balance_of(this);
-            let ether_reserve = ether_token.balance_of(this);
+            let ether_reserve = self.ether_token_balance.read();
 
             let eth_sold = UniswapExchangeImpl::get_output_price(
                 @self, 
@@ -889,10 +882,11 @@ mod uniswap_exchange {
                 token_reserve
             );
 
+
             assert(eth_sold <= max_eth, 'INSUFFICIENT_INPUT_AMOUNT');
             let eth_refund = max_eth - eth_sold;
             if eth_refund > 0 {
-                UniswapExchangePrivateImpl::_send_ether(@self,buyer, eth_refund);
+                UniswapExchangePrivateImpl::_send_ether(ref self,buyer, eth_refund);
             }
 
             assert(token.transfer(recipient, tokens_bought), 'TRANSFER_FAILED');
@@ -919,11 +913,10 @@ mod uniswap_exchange {
             assert(tokens_sold > 0 && min_eth > 0, 'INVALID_VALUE');
 
             let token = self.token.read();
-            let ether_token = self.ether_token.read();
 
             let this = starknet::get_contract_address();
             let token_reserve = token.balance_of(this);
-            let eth_reserve = ether_token.balance_of(this);
+            let eth_reserve = self.ether_token_balance.read();
 
             let eth_bought = UniswapExchangeImpl::get_input_price(
                 @self, 
@@ -934,7 +927,7 @@ mod uniswap_exchange {
 
             let wei_bought = eth_bought;
             assert(wei_bought >= min_eth, 'INSUFFICIENT_OUTPUT_AMOUNT');
-            UniswapExchangePrivateImpl::_send_ether(@self,recipient, wei_bought);
+            UniswapExchangePrivateImpl::_send_ether(ref self,recipient, wei_bought);
             assert(token.transfer_from(buyer, this, tokens_sold), 'TRANSFER_FROM_FAILED');
 
             self.emit(Event::EthPurchase(EthPurchase {
@@ -960,18 +953,17 @@ mod uniswap_exchange {
             assert(eth_bought > 0, 'INVALID_VALUE');
 
             let token = self.token.read();
-            let ether_token = self.ether_token.read();
 
             let this = starknet::get_contract_address();
             let tokens_sold = UniswapExchangeImpl::get_output_price(
                 @self, 
                 eth_bought, 
                 token.balance_of(this), 
-                ether_token.balance_of(this)
+                self.ether_token_balance.read()
             );
 
             assert(max_tokens >= tokens_sold, 'INSUFFICIENT_INPUT_AMOUNT');
-            UniswapExchangePrivateImpl::_send_ether(@self,recipient, eth_bought);
+            UniswapExchangePrivateImpl::_send_ether(ref self,recipient, eth_bought);
             assert(token.transfer_from(buyer, this, tokens_sold), 'TRANSFER_FROM_FAILED');
 
             self.emit(Event::EthPurchase(EthPurchase {
@@ -1009,7 +1001,7 @@ mod uniswap_exchange {
                 @self, 
                 tokens_sold,
                 token.balance_of(this), 
-                ether_token.balance_of(this)
+                self.ether_token_balance.read()
             );
 
             let wei_bought = eth_bought;
@@ -1040,16 +1032,16 @@ mod uniswap_exchange {
 
 
 
-    fn token_to_token_output(
-        ref self: ContractState,
-        tokens_bought: u256,
-        max_tokens_sold: u256,
-        max_eth_sold: u256,
-        deadline: u256,
-        buyer: ContractAddress,
-        recipient: ContractAddress,
-        exchange_addr: ContractAddress 
-    ) -> u256 {
+        fn token_to_token_output(
+            ref self: ContractState,
+            tokens_bought: u256,
+            max_tokens_sold: u256,
+            max_eth_sold: u256,
+            deadline: u256,
+            buyer: ContractAddress,
+            recipient: ContractAddress,
+            exchange_addr: ContractAddress 
+        ) -> u256 {
             let this = starknet::get_contract_address();
             assert(deadline >= get_block_timestamp().into(), 'EXPIRED');
             assert(tokens_bought > 0 && max_eth_sold > 0, 'INVALID_VALUE');
@@ -1066,7 +1058,7 @@ mod uniswap_exchange {
                 @self, 
                 eth_bought, 
                 token.balance_of(this), 
-                ether_token.balance_of(this)
+                self.ether_token_balance.read()
             );
 
             // tokens sold is always > 0
@@ -1093,21 +1085,30 @@ mod uniswap_exchange {
 
 
         #[inline(always)]
-        fn _receive_ether(self: @ContractState, from: ContractAddress, value: u256){
+        fn _receive_ether(ref self: ContractState, from: ContractAddress, value: u256){
             let ether_token = self.ether_token.read();
             assert(ether_token.transfer_from(
                 from, 
                 starknet::get_contract_address(), 
                 value
             ), 'ETH_TRANSFER_FROM_FAILED');
+
+            self.ether_token_balance.write(
+                self.ether_token_balance.read() + value
+            );
+
         }
 
         #[inline(always)]
-        fn _send_ether(self: @ContractState, to: ContractAddress, value: u256){
+        fn _send_ether(ref self: ContractState, to: ContractAddress, value: u256){
             assert(self.ether_token.read().transfer(
                 to, 
                 value
             ), 'ETH_TRANSFER_FAILED');
+
+            self.ether_token_balance.write(
+                self.ether_token_balance.read() - value
+            );
         }
     }
 
