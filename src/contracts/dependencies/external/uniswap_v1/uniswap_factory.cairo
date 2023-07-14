@@ -1,4 +1,3 @@
-
 #[starknet::contract]
 mod uniswap_factory {
     use zeroable::Zeroable;
@@ -18,9 +17,8 @@ mod uniswap_factory {
     use starknet::ClassHash;
 
 
-    
     #[storage]
-    struct Storage{
+    struct Storage {
         exchange_template: ClassHash,
         ether_token: ContractAddress,
         token_count: u256,
@@ -31,7 +29,7 @@ mod uniswap_factory {
 
     #[event]
     #[derive(Drop, starknet::Event)]
-    enum Event{
+    enum Event {
         NewExchange: NewExchange
     }
 
@@ -44,14 +42,13 @@ mod uniswap_factory {
 
     #[external(v0)]
     impl UniswapFactoryImpl of IUniswapFactory<ContractState> {
-
         /////////////////////////
         // Factory Functions
         /////////////////////////
 
-
-
-        fn initialize_factory(ref self: ContractState, template: ClassHash, ether_token: ContractAddress){
+        fn initialize_factory(
+            ref self: ContractState, template: ClassHash, ether_token: ContractAddress
+        ) {
             assert(self.exchange_template.read().is_zero(), 'ALREADY_INITIALIZED');
             assert(self.ether_token.read().is_zero(), 'ALREADY_INITIALIZED');
             assert(template.is_non_zero(), 'INVALID_CLASS_HASH');
@@ -66,36 +63,34 @@ mod uniswap_factory {
 
             let calldata: Array::<felt252> = Default::default();
             let (address_uniswap_exchange, _) = deploy_syscall(
-                self.exchange_template.read(),
-                calldata.len().into(),
-                calldata.span(), 
-                false
-            ).unwrap();
+                self.exchange_template.read(), calldata.len().into(), calldata.span(), false
+            )
+                .unwrap();
 
-
-            let exchange = IUniswapExchangeDispatcher{
+            let exchange = IUniswapExchangeDispatcher {
                 contract_address: address_uniswap_exchange
             };
-            exchange.setup(token,self.ether_token.read());
+            exchange.setup(token, self.ether_token.read());
             self.token_to_exchange.write(token, exchange.contract_address);
             self.exchange_to_token.write(exchange.contract_address, token);
 
             let token_id = self.token_count.read() + 1;
             self.token_count.write(token_id);
             self.id_to_token.write(token_id, token);
-            self.emit(Event::NewExchange(NewExchange{
-                token: token,
-                exchange: exchange.contract_address,
-            }));
+            self
+                .emit(
+                    Event::NewExchange(
+                        NewExchange { token: token, exchange: exchange.contract_address,  }
+                    )
+                );
 
             exchange.contract_address
         }
 
 
-          ///////////////////////
-          // Getter Functions
-          ///////////////////////
-
+        ///////////////////////
+        // Getter Functions
+        ///////////////////////
 
         fn get_exchange(self: @ContractState, token: ContractAddress) -> ContractAddress {
             self.token_to_exchange.read(token)
@@ -107,6 +102,6 @@ mod uniswap_factory {
 
         fn get_token_with_id(self: @ContractState, token_id: u256) -> ContractAddress {
             self.id_to_token.read(token_id)
-        }   
+        }
     }
 }
