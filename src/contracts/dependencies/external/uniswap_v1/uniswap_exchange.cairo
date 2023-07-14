@@ -19,7 +19,8 @@ mod uniswap_exchange {
 
     use damnvulnerabledefi::contracts::dependencies::external::uniswap_v1::uniswap_interfaces::{
         IUniswapExchange, IUniswapExchangeDispatcher, IUniswapExchangeDispatcherTrait,
-        IUniswapFactory, IUniswapFactoryDispatcher, IUniswapFactoryDispatcherTrait
+        IUniswapFactory, IUniswapFactoryDispatcher, IUniswapFactoryDispatcherTrait,
+        IUniswapExchangeStorage
     };
 
     use damnvulnerabledefi::contracts::dependencies::external::token::ERC20::ERC20::name::InternalContractStateTrait as ERC20NameInternalContractStateTrait;
@@ -170,6 +171,23 @@ mod uniswap_exchange {
         }
 
     }
+
+    #[external(v0)]
+    impl UniswapExchangeStorage of IUniswapExchangeStorage<ContractState> {
+        fn token(ref self: ContractState) -> IERC20Dispatcher {
+            self.token.read()
+        }
+        fn ether_token(ref self: ContractState) -> IERC20Dispatcher {
+            self.ether_token.read()
+        }
+        fn ether_token_balance(ref self: ContractState) -> u256 {
+            self.ether_token_balance.read()
+        }
+        fn factory(ref self: ContractState) -> IUniswapFactoryDispatcher {
+            self.factory.read()
+        }
+    }
+    
 
     #[external(v0)]
     impl UniswapExchangeImpl of IUniswapExchange<ContractState> {
