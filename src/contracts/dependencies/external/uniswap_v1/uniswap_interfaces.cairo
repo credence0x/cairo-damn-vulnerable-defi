@@ -2,6 +2,7 @@ use starknet::{
     ContractAddress,
     ClassHash
 };
+use damnvulnerabledefi::contracts::dependencies::external::token::ERC20::IERC20Dispatcher;
 
 #[starknet::interface]
 trait IUniswapExchange<TContractState> {
@@ -224,6 +225,14 @@ trait IUniswapExchange<TContractState> {
     /// @param deadline Time after which this transaction can no longer be executed.
     /// @return The amount of ETH && Tokens withdrawn.
     fn remove_liquidity(ref self: TContractState, amount: u256, min_eth: u256, min_tokens: u256, deadline: u256) -> (u256, u256);
+}
+
+#[starknet::interface]
+trait IUniswapExchangeStorage<TContractState> {
+    fn token(ref self: TContractState) -> IERC20Dispatcher;
+    fn ether_token(ref self: TContractState) -> IERC20Dispatcher;
+    fn ether_token_balance(ref self: TContractState) -> u256;
+    fn factory(ref self: TContractState) -> IUniswapFactoryDispatcher;
 }
 
 
