@@ -23,37 +23,62 @@ mod test_side_entrance_lender_pool {
     ////////////////////////////
 
     #[starknet::interface]
-    trait IPlayer<TContractState> {}
+    trait IPlayer<TContractState> {
+        fn play(ref self: TContractState);
+    }
 
     #[starknet::contract]
     mod player {
-        use super::IERC20Dispatcher;
+        use super::{IERC20Dispatcher, IERC20DispatcherTrait};
+        use damnvulnerabledefi::contracts::challenges::side_entrance::side_entrance_lender_pool::{
+            ISideEntranceLenderPoolDispatcher, ISideEntranceLenderPoolDispatcherTrait,
+            IFlashLoanEtherReceiver
+        };
 
         #[storage]
-        struct Storage {}
+        struct Storage {
+            ether_token: IERC20Dispatcher,
+            side_pool: ISideEntranceLenderPoolDispatcher
+        }
+
+        #[constructor]
+        fn constructor(
+            ref self: ContractState,
+            ether_token: IERC20Dispatcher,
+            side_pool: ISideEntranceLenderPoolDispatcher
+        ) {
+            self.ether_token.write(ether_token);
+            self.side_pool.write(side_pool);
+        }
 
         #[external(v0)]
-        impl FlashLoanReceiver of super::IFlashLoanEtherReceiver<ContractState> {
+        impl FlashLoanReceiver of IFlashLoanEtherReceiver<ContractState> {
             fn execute(self: @ContractState, token: IERC20Dispatcher, amount: u256) {}
         }
 
         #[external(v0)]
-        impl Player of super::IPlayer<ContractState> {}
+        impl Player of super::IPlayer<ContractState> {
+            fn play(ref self: ContractState) { //
+            //////////////////////////
+            // YOUR EXPLOIT GOES HERE
+            //////////////////////////
+            }
+        }
     }
 
 
     #[test]
     #[available_gas(30000000)]
     fn exploit() {
+        /// NO NEED TO CHANGE ANYTHING HERE 
+
         let (ether_token, side_pool) = __setup_contracts();
-        let address_player = __setup_player();
+        let player = __setup_player(ether_token, side_pool);
         __fund_pool(ether_token, side_pool);
 
-        ////////////////////////////
-        // YOUR SOLUTION GOES HERE
-        ////////////////////////////
+        player.play();
 
-        __check_solution(address_player, ether_token, side_pool);
+        __check_solution(player.contract_address, ether_token, side_pool);
     }
 
 
@@ -96,17 +121,22 @@ mod test_side_entrance_lender_pool {
         (ether_token, side_pool)
     }
 
-    fn __setup_player() -> ContractAddress {
+    fn __setup_player(
+        ether_token: IERC20Dispatcher, side_pool: ISideEntranceLenderPoolDispatcher
+    ) -> IPlayerDispatcher {
         ////////////////////////////////////
         // Deploy player contract
         ////////////////////////////////////
         let mut calldata = Default::default();
+        Serde::<IERC20Dispatcher>::serialize(@ether_token, ref calldata);
+        Serde::<ISideEntranceLenderPoolDispatcher>::serialize(@side_pool, ref calldata);
+
         let (address_player, _) = deploy_syscall(
             player::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), false
         )
             .unwrap();
 
-        address_player
+        IPlayerDispatcher { contract_address: address_player }
     }
 
     fn __ether_in_pool() -> u256 {
