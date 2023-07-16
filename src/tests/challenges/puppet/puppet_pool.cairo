@@ -73,7 +73,8 @@ mod test_puppet_pool {
 
         #[external(v0)]
         impl Player of super::IPlayer<ContractState> {
-            fn play(ref self: ContractState) {//////////////////////////
+            fn play(ref self: ContractState) { //
+            //////////////////////////
             // YOUR EXPLOIT GOES HERE
             //////////////////////////
 
