@@ -7,18 +7,15 @@ mod ERC721 {
     use zeroable::Zeroable;
     use damnvulnerabledefi::contracts::dependencies::external::token::erc721::IERC721::{
         IERC721, IERC721Receiver, IERC721ReceiverDispatcher, IERC721ReceiverDispatcherTrait,
-        IERC721Burnable, IERC721BurnableDispatcher, IERC721BurnableDispatcherTrait
+        IERC721Burnable, IERC721BurnableDispatcher, IERC721BurnableDispatcherTrait,
+        IERC721_ID, IERC721_METADATA_ID, IERC721_RECEIVER_ID
+        
     };
     use damnvulnerabledefi::contracts::dependencies::external::utils::IERC165::{
         IERC165_ID, IERC165, IERC165Dispatcher, IERC165DispatcherTrait
     };
 
 
-    const IERC721_ID: felt252 = 0x33eb2f84c309543403fd69f0d0f363781ef06ef6faeb0131ff16ea3175bd943;
-    const IERC721_METADATA_ID: felt252 =
-        0x6069a70848f907fa57668ba1875164eb4dcee693952468581406d131081bbd;
-    const IERC721_RECEIVER_ID: felt252 =
-        0x3a0dff5f70d80458ad14ae37bb182a728e3c8cdda0402a5daa86620bdf910bc;
 
     #[storage]
     struct Storage {
