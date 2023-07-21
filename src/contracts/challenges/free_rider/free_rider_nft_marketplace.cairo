@@ -130,7 +130,7 @@ mod free_rider_nft_marketplace {
     }
 
     #[generate_trait]
-    impl MarketplaceMoneyImpl of MarketplaceMoneyTrait {
+    impl EtherTransferImpl of EtherTransferTrait {
         
         #[inline(always)]
         fn send_ether(ref self: ContractState, to: ContractAddress, value: u256) {
@@ -192,7 +192,7 @@ mod free_rider_nft_marketplace {
             
 
             let caller = starknet::get_caller_address();
-            MarketplaceMoneyImpl::receive_ether(
+            EtherTransferImpl::receive_ether(
                 ref self, caller, value
             );
 
@@ -278,7 +278,7 @@ mod free_rider_nft_marketplace {
             );
 
             // pay seller using cached token
-            MarketplaceMoneyImpl::send_ether(
+            EtherTransferImpl::send_ether(
                 ref self, 
                 token.owner_of(token_id), 
                 price_to_pay
